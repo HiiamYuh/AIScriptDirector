@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # TOOL KỊCH BẢN VIDEO AI YOUTUBE (50-60 PROMPT)
 
 > **Tuân thủ tuyệt đối quy chuẩn tại `Rule.txt`**: Thiết kế chuyên biệt cho nhà sản xuất video YouTube AI & Shorts, tạo ra kịch bản hoàn chỉnh chuẩn Hollywood gồm đúng 2 phần:
@@ -119,3 +120,6 @@ C:\Users\Public\Documents\Tool-Kichban\
 ├── uploads/              # Thư mục lưu ảnh người dùng tải lên
 └── outputs/              # Thư mục tự động lưu trữ các kịch bản (.md, .json)
 ```
+=======
+# AIScriptDirector
+>>>>>>> ba428c2811aab816b0fe03fecf1e33012be0e5d6
