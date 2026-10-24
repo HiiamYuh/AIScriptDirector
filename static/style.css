@@ -1,0 +1,117 @@
+/* Custom styles for AI YouTube Script Director */
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out forwards;
+}
+
+.animate-scale-up {
+  animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Scene Card Hover Effects */
+.scene-card {
+  transition: all 0.2s ease-in-out;
+}
+
+.scene-card:hover {
+  border-color: #4f46e5;
+  box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.15);
+}
+
+/* Prose Styling for Markdown View */
+.prose h1, .prose h2, .prose h3 {
+  color: #f1f5f9;
+  font-weight: 700;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose h1 {
+  font-size: 1.25rem;
+  border-bottom: 1px solid #334155;
+  padding-bottom: 0.5rem;
+  color: #818cf8;
+}
+
+.prose h2 {
+  font-size: 1.1rem;
+  color: #38bdf8;
+}
+
+.prose h3 {
+  font-size: 0.95rem;
+  color: #fbbf24;
+}
+
+.prose ul, .prose ol {
+  padding-left: 1.25rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose li {
+  margin-bottom: 0.25rem;
+}
+
+.prose strong {
+  color: #e2e8f0;
+}
+
+.prose code {
+  background-color: #020617;
+  color: #a5b4fc;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.375rem;
+  border: 1px solid #1e293b;
+  font-size: 0.825rem;
+}
+
+.prose blockquote {
+  border-left: 3px solid #6366f1;
+  padding-left: 0.75rem;
+  margin-left: 0;
+  color: #94a3b8;
+  font-style: italic;
+}
