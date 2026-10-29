@@ -108,6 +108,10 @@
           <button id="btn-save-quick-gemini" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow transition">
             Lưu Key
           </button>
+          <button id="btn-test-quick-gemini" type="button" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium text-xs border border-slate-700 transition flex items-center space-x-1" title="Kiểm tra kết nối AI ngay">
+            <i class="fa-solid fa-satellite-dish text-indigo-400"></i>
+            <span>Test</span>
+          </button>
         </div>
         <div id="gemini-banner-status" class="text-[10px] text-emerald-400 hidden flex items-center space-x-1">
           <i class="fa-solid fa-circle-check"></i>
@@ -204,11 +208,51 @@
           </select>
         </div>
 
-        <!-- Action Button -->
-        <button id="btn-generate" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-sm shadow-lg shadow-indigo-600/30 active:scale-[0.98] transition flex items-center justify-center space-x-2">
-          <i class="fa-solid fa-wand-magic-sparkles"></i>
-          <span id="btn-generate-text">Tạo Kịch Bản Chuẩn 50-60 Prompt</span>
-        </button>
+        <!-- ACTION BUTTONS: 2 BƯỚC TÁCH BIỆT (TIẾT KIỆM THỜI GIAN ĐỢI) -->
+        <div class="space-y-3 pt-1">
+          <!-- Button 1: Tạo Kịch Bản Sườn -->
+          <button id="btn-generate-outline" type="button" 
+            class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-500 hover:to-orange-500 text-white font-semibold text-xs sm:text-sm shadow-lg shadow-amber-600/25 active:scale-[0.98] transition flex items-center justify-between group">
+            <div class="flex items-center space-x-2.5">
+              <div class="w-8 h-8 rounded-lg bg-black/25 flex items-center justify-center shrink-0">
+                <i class="fa-solid fa-file-pen text-amber-200 text-sm"></i>
+              </div>
+              <div class="text-left">
+                <div class="font-bold flex items-center space-x-1.5">
+                  <span id="btn-outline-text">Bước 1: Tạo Kịch Bản Sườn</span>
+                  <span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-400/20 text-amber-200 border border-amber-400/30">Nhanh ~5s</span>
+                </div>
+                <div class="text-[10px] text-amber-100/80 font-normal">Cốt truyện • The Hook 3s • 5 Tiêu đề • Thumbnail</div>
+              </div>
+            </div>
+            <i class="fa-solid fa-arrow-right text-xs opacity-75 group-hover:translate-x-1 transition-transform"></i>
+          </button>
+
+          <!-- Button 2: Tạo Phân Cảnh Chi Tiết -->
+          <button id="btn-generate-scenes" type="button" 
+            class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-xs sm:text-sm shadow-lg shadow-indigo-600/30 active:scale-[0.98] transition flex items-center justify-between group">
+            <div class="flex items-center space-x-2.5">
+              <div class="w-8 h-8 rounded-lg bg-black/25 flex items-center justify-center shrink-0">
+                <i class="fa-solid fa-clapperboard text-indigo-200 text-sm"></i>
+              </div>
+              <div class="text-left">
+                <div class="font-bold flex items-center space-x-1.5">
+                  <span id="btn-scenes-text">Bước 2: Tạo Phân Cảnh Chi Tiết</span>
+                  <span class="text-[10px] px-1.5 py-0.2 rounded bg-indigo-400/20 text-indigo-200 border border-indigo-400/30">50-60 Cảnh</span>
+                </div>
+                <div class="text-[10px] text-indigo-100/80 font-normal">Dựa trên sườn • Tách Prompt Ảnh, Video & Voice</div>
+              </div>
+            </div>
+            <i class="fa-solid fa-wand-magic-sparkles text-xs opacity-75 group-hover:rotate-12 transition-transform"></i>
+          </button>
+
+          <!-- Button Tạo Trọn Gói -->
+          <button id="btn-generate-full" type="button" 
+            class="w-full py-2 px-3 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-slate-200 text-[11px] border border-slate-800 hover:border-slate-700 transition flex items-center justify-center space-x-1.5">
+            <i class="fa-solid fa-bolt text-indigo-400 text-xs"></i>
+            <span id="btn-generate-full-text">Hoặc: Tạo Trọn Gói Cả 2 Bước Tự Động</span>
+          </button>
+        </div>
       </div>
 
       <!-- Quick Rule Card -->
@@ -290,7 +334,7 @@
           <div id="tab-outline" class="tab-pane active space-y-4">
             <div id="outline-empty" class="text-center py-20 text-slate-400 space-y-4">
               <i class="fa-solid fa-clapperboard text-5xl text-slate-600"></i>
-              <p class="text-sm">Chưa có kịch bản. Hãy nhập chủ đề và bấm <strong class="text-slate-300">Tạo Kịch Bản</strong> ở cột bên trái.</p>
+              <p class="text-sm">Chưa có kịch bản sườn. Hãy nhập chủ đề và bấm <strong class="text-amber-400">Bước 1: Tạo Kịch Bản Sườn</strong> ở cột bên trái.</p>
               <div>
                 <button id="btn-load-demo-inline" class="px-4 py-2 rounded-xl bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white border border-indigo-500/40 text-xs font-semibold transition inline-flex items-center space-x-2">
                   <i class="fa-solid fa-eye"></i>
@@ -298,7 +342,49 @@
                 </button>
               </div>
             </div>
-            <div id="outline-content" class="hidden prose prose-invert max-w-none text-slate-300 text-sm leading-relaxed">
+
+            <!-- Outline Header Bar (Hiển thị khi sườn đã sẵn sàng) -->
+            <div id="outline-header-bar" class="hidden flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-950/80 border border-amber-500/30 rounded-xl shadow-md">
+              <div class="flex items-center space-x-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="text-xs font-bold text-amber-300">Phần 1: Kịch Bản Sườn Đã Sẵn Sàng</span>
+                <span class="hidden md:inline text-[11px] text-slate-400">• Bạn có thể chỉnh sửa sườn trước khi tạo phân cảnh</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <button id="btn-toggle-edit-outline" type="button" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs border border-slate-700 transition flex items-center space-x-1.5">
+                  <i class="fa-solid fa-pen-to-square text-indigo-400"></i>
+                  <span id="btn-toggle-edit-text">Chỉnh Sửa Sườn</span>
+                </button>
+                <button id="btn-copy-outline" type="button" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs border border-slate-700 transition flex items-center space-x-1.5">
+                  <i class="fa-solid fa-copy text-amber-400"></i>
+                  <span>Copy Sườn</span>
+                </button>
+                <button id="btn-inline-generate-scenes" type="button" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold shadow-md shadow-indigo-600/30 transition flex items-center space-x-1.5 active:scale-95">
+                  <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
+                  <span>Tạo Phân Cảnh (Bước 2)</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Outline Rendered Markdown -->
+            <div id="outline-content" class="hidden prose prose-invert max-w-none text-slate-300 text-sm leading-relaxed bg-slate-950/40 p-5 rounded-xl border border-slate-800/80">
+            </div>
+
+            <!-- Outline Editor (Textarea khi ở chế độ chỉnh sửa) -->
+            <div id="outline-editor-container" class="hidden space-y-3">
+              <div class="flex items-center justify-between text-xs text-slate-400">
+                <span>Chỉnh sửa nội dung sườn (Cốt truyện, Hook, Nhân vật, 5 Tiêu đề, Thumbnail...):</span>
+                <span class="text-amber-400 text-[11px] font-medium">* Bước 2 sẽ dựa trên chính xác nội dung này để sinh 50-60 cảnh</span>
+              </div>
+              <textarea id="outline-editor-text" rows="20" 
+                class="w-full bg-slate-950 border border-indigo-500/50 rounded-xl p-4 font-mono text-xs text-slate-200 focus:outline-none focus:border-indigo-400 leading-relaxed resize-y"></textarea>
+              <div class="flex justify-end space-x-2">
+                <button id="btn-cancel-edit-outline" type="button" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition">Hủy Chỉnh Sửa</button>
+                <button id="btn-save-edit-outline" type="button" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow transition flex items-center space-x-1.5">
+                  <i class="fa-solid fa-check"></i>
+                  <span>Lưu Thay Đổi Sườn</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -430,9 +516,15 @@
         </div>
       </div>
 
-      <div class="flex justify-end space-x-3 pt-3 border-t border-slate-800">
-        <button id="btn-cancel-settings" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition">Hủy</button>
-        <button id="btn-save-settings" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md transition">Lưu Cấu Hình</button>
+      <div class="flex justify-between items-center pt-3 border-t border-slate-800">
+        <button id="btn-test-settings-key" type="button" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-indigo-300 text-xs border border-slate-700 transition flex items-center space-x-1.5">
+          <i class="fa-solid fa-satellite-dish"></i>
+          <span>Kiểm Tra Key</span>
+        </button>
+        <div class="flex space-x-2">
+          <button id="btn-cancel-settings" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition">Hủy</button>
+          <button id="btn-save-settings" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md transition">Lưu Cấu Hình</button>
+        </div>
       </div>
     </div>
   </div>

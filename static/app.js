@@ -12,21 +12,40 @@ document.addEventListener("DOMContentLoaded", () => {
   const sceneCountSlider = document.getElementById("scene-count");
   const sceneCountVal = document.getElementById("scene-count-val");
   const genreSelect = document.getElementById("genre-select");
-  const btnGenerate = document.getElementById("btn-generate");
-  const btnGenerateText = document.getElementById("btn-generate-text");
+
+  // Action Buttons (2 bước tách biệt & nút trọn gói)
+  const btnGenerateOutline = document.getElementById("btn-generate-outline");
+  const btnOutlineText = document.getElementById("btn-outline-text");
+  const btnGenerateScenes = document.getElementById("btn-generate-scenes");
+  const btnScenesText = document.getElementById("btn-scenes-text");
+  const btnGenerateFull = document.getElementById("btn-generate-full");
+  const btnGenerateFullText = document.getElementById("btn-generate-full-text");
 
   const progressContainer = document.getElementById("progress-container");
   const progressBar = document.getElementById("progress-bar");
   const progressPercent = document.getElementById("progress-percent");
   const progressStatusText = document.getElementById("progress-status-text");
 
+  // Tab 1 Elements
   const outlineContent = document.getElementById("outline-content");
   const outlineEmpty = document.getElementById("outline-empty");
+  const outlineHeaderBar = document.getElementById("outline-header-bar");
+  const btnToggleEditOutline = document.getElementById("btn-toggle-edit-outline");
+  const btnToggleEditText = document.getElementById("btn-toggle-edit-text");
+  const btnCopyOutline = document.getElementById("btn-copy-outline");
+  const btnInlineGenerateScenes = document.getElementById("btn-inline-generate-scenes");
+  const outlineEditorContainer = document.getElementById("outline-editor-container");
+  const outlineEditorText = document.getElementById("outline-editor-text");
+  const btnCancelEditOutline = document.getElementById("btn-cancel-edit-outline");
+  const btnSaveEditOutline = document.getElementById("btn-save-edit-outline");
+
+  // Tab 2 Elements
   const scenesContainer = document.getElementById("scenes-container");
   const scenesCountDisplay = document.getElementById("scenes-count-display");
   const scenesBadge = document.getElementById("scenes-badge");
   const scenesFilter = document.getElementById("scenes-filter");
 
+  // Other Tabs Elements
   const fullScriptText = document.getElementById("full-script-text");
   const bulkMjText = document.getElementById("bulk-mj-text");
   const bulkVideoText = document.getElementById("bulk-video-text");
@@ -59,9 +78,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnLoadDemoInline = document.getElementById("btn-load-demo-inline");
 
   // State
+  const API_BASE = window.location.protocol === "file:" ? "http://127.0.0.1:8000" : "";
   let currentFile = null;
   let selectedVideoType = "Video dài (16:9)";
   let currentScriptData = null;
+  let currentPart1Outline = "";
+  let isEditingOutline = false;
 
   // Initialize
   checkApiConfig();
@@ -69,7 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function loadDemoScript() {
     try {
       showToast("Đang tải kịch bản mẫu 55 cảnh...");
-      const res = await fetch("/api/history/demo");
+      const res = await fetch(`${API_BASE}/api/history/demo`);
       if (res.ok) {
         const data = await res.json();
         renderScriptResult(data);
@@ -186,8 +208,71 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // GENERATE SCRIPT TRIGGER
-  btnGenerate.addEventListener("click", async () => {
+  // Outline Editor Controls
+  if (btnToggleEditOutline) {
+    btnToggleEditOutline.addEventListener("click", () => {
+      isEditingOutline = !isEditingOutline;
+      if (isEditingOutline) {
+        outlineEditorText.value = currentPart1Outline;
+        outlineContent.classList.add("hidden");
+        outlineEditorContainer.classList.remove("hidden");
+        btnToggleEditText.textContent = "Xem Định Dạng";
+        outlineEditorText.focus();
+      } else {
+        outlineEditorContainer.classList.add("hidden");
+        outlineContent.classList.remove("hidden");
+        btnToggleEditText.textContent = "Chỉnh Sửa Sườn";
+      }
+    });
+  }
+
+  if (btnSaveEditOutline) {
+    btnSaveEditOutline.addEventListener("click", () => {
+      const newOutline = outlineEditorText.value.trim();
+      if (!newOutline) {
+        showToast("Nội dung sườn không được để trống!", true);
+        return;
+      }
+      currentPart1Outline = newOutline;
+      if (currentScriptData) {
+        currentScriptData.part1_outline = newOutline;
+      }
+      if (window.marked) {
+        outlineContent.innerHTML = marked.parse(newOutline);
+      } else {
+        outlineContent.textContent = newOutline;
+      }
+      isEditingOutline = false;
+      outlineEditorContainer.classList.add("hidden");
+      outlineContent.classList.remove("hidden");
+      if (btnToggleEditText) btnToggleEditText.textContent = "Chỉnh Sửa Sườn";
+      showToast("Đã lưu nội dung kịch bản sườn đã sửa!");
+    });
+  }
+
+  if (btnCancelEditOutline) {
+    btnCancelEditOutline.addEventListener("click", () => {
+      outlineEditorText.value = currentPart1Outline;
+      isEditingOutline = false;
+      outlineEditorContainer.classList.add("hidden");
+      outlineContent.classList.remove("hidden");
+      if (btnToggleEditText) btnToggleEditText.textContent = "Chỉnh Sửa Sườn";
+    });
+  }
+
+  if (btnCopyOutline) {
+    btnCopyOutline.addEventListener("click", () => {
+      const textToCopy = isEditingOutline ? outlineEditorText.value : currentPart1Outline;
+      if (!textToCopy) {
+        showToast("Chưa có kịch bản sườn để copy!", true);
+        return;
+      }
+      copyToClipboard(textToCopy, "Kịch bản sườn");
+    });
+  }
+
+  // STEP 1: GENERATE OUTLINE TRIGGER (Nhanh ~5-10s)
+  async function handleGenerateOutline() {
     const topic = topicInput.value.trim();
     if (!topic && !currentFile) {
       showToast("Vui lòng nhập chủ đề kịch bản hoặc tải lên bức ảnh!", true);
@@ -198,9 +283,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const totalScenes = parseInt(sceneCountSlider.value, 10);
     const genre = genreSelect.value;
 
-    // Start UI progress
-    setGeneratingState(true);
-    updateProgress(5, "Đang gửi yêu cầu và chuẩn bị pipeline...");
+    setGeneratingState(true, "outline");
+    updateProgress(20, "Đang phân tích hình ảnh và sáng tác PHẦN 1: Kịch bản sườn & Tóm tắt...");
 
     const formData = new FormData();
     formData.append("topic", topic || "Phân tích bức ảnh và sáng tác kịch bản YouTube đỉnh cao");
@@ -212,7 +296,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
-      const response = await fetch("/api/generate-stream", {
+      const response = await fetch(`${API_BASE}/api/generate-outline-stream`, {
         method: "POST",
         body: formData,
       });
@@ -231,7 +315,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n\n");
-        buffer = lines.pop(); // keep last incomplete chunk
+        buffer = lines.pop();
 
         for (const line of lines) {
           if (line.startsWith("data: ")) {
@@ -241,12 +325,12 @@ document.addEventListener("DOMContentLoaded", () => {
               if (event.type === "progress") {
                 updateProgress(event.percent, event.message);
               } else if (event.type === "complete") {
-                updateProgress(100, "Hoàn tất kịch bản!");
-                renderScriptResult(event.data);
-                showToast("Tạo kịch bản thành công!");
+                updateProgress(100, "Hoàn tất kịch bản sườn!");
+                renderOutlineResult(event.data);
+                showToast("Đã tạo Kịch Bản Sườn thành công! Hãy kiểm tra rồi bấm Bước 2.");
                 setTimeout(() => {
                   progressContainer.classList.add("hidden");
-                }, 2000);
+                }, 1500);
               } else if (event.type === "error") {
                 showToast(`Lỗi: ${event.message}`, true);
                 alert(`Đã xảy ra lỗi: ${event.message}`);
@@ -261,17 +345,217 @@ document.addEventListener("DOMContentLoaded", () => {
     } finally {
       setGeneratingState(false);
     }
-  });
+  }
 
-  function setGeneratingState(isGenerating) {
-    btnGenerate.disabled = isGenerating;
+  // STEP 2: GENERATE DETAILED SCENES TRIGGER (50-60 scenes)
+  async function handleGenerateScenes() {
+    let outline = currentPart1Outline;
+    if (isEditingOutline && outlineEditorText) {
+      outline = outlineEditorText.value.trim();
+      currentPart1Outline = outline;
+    }
+
+    const topic = topicInput.value.trim() || currentScriptData?.topic || "";
+
+    // If no outline yet, prompt user or auto-fallback
+    if (!outline) {
+      if (!topic && !currentFile) {
+        showToast("Vui lòng nhập chủ đề kịch bản và bấm Bước 1 trước!", true);
+        topicInput.focus();
+        return;
+      }
+      const doAuto = confirm("Chưa có Kịch Bản Sườn (Phần 1). Bạn có muốn tạo Kịch Bản Sườn trước, rồi tự động tạo 50-60 cảnh chi tiết không?");
+      if (doAuto) {
+        handleGenerateFull();
+      }
+      return;
+    }
+
+    const totalScenes = parseInt(sceneCountSlider.value, 10);
+    const genre = genreSelect.value;
+
+    setGeneratingState(true, "scenes");
+    updateProgress(10, "Đang kết nối AI để tạo phân cảnh chi tiết từ sườn kịch bản...");
+
+    const formData = new FormData();
+    formData.append("topic", topic || "Kịch bản YouTube AI");
+    formData.append("part1_outline", outline);
+    if (currentScriptData && currentScriptData.id) {
+      formData.append("script_id", currentScriptData.id);
+    }
+    formData.append("video_type", selectedVideoType);
+    formData.append("genre", genre);
+    formData.append("total_scenes", totalScenes);
+
+    try {
+      const response = await fetch(`${API_BASE}/api/generate-scenes-stream`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Lỗi máy chủ: ${response.status}`);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n\n");
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const jsonStr = line.slice(6).trim();
+            if (jsonStr) {
+              const event = JSON.parse(jsonStr);
+              if (event.type === "progress") {
+                updateProgress(event.percent, event.message);
+              } else if (event.type === "complete") {
+                updateProgress(100, "Hoàn tất 50-60 cảnh chi tiết!");
+                renderScriptResult(event.data);
+                showToast(`Đã tạo thành công ${event.data.scenes.length} cảnh chi tiết!`);
+                setTimeout(() => {
+                  progressContainer.classList.add("hidden");
+                }, 1500);
+
+                // Auto switch to Scenes Tab
+                const scenesTabBtn = document.querySelector('[data-tab="tab-scenes"]');
+                if (scenesTabBtn) scenesTabBtn.click();
+              } else if (event.type === "error") {
+                showToast(`Lỗi: ${event.message}`, true);
+                alert(`Đã xảy ra lỗi: ${event.message}`);
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      showToast(`Lỗi kết nối: ${err.message}`, true);
+    } finally {
+      setGeneratingState(false);
+    }
+  }
+
+  // FULL PIPELINE TRIGGER (Tạo cả 2 bước liên tục)
+  async function handleGenerateFull() {
+    const topic = topicInput.value.trim();
+    if (!topic && !currentFile) {
+      showToast("Vui lòng nhập chủ đề kịch bản hoặc tải lên bức ảnh!", true);
+      topicInput.focus();
+      return;
+    }
+
+    const totalScenes = parseInt(sceneCountSlider.value, 10);
+    const genre = genreSelect.value;
+
+    setGeneratingState(true, "full");
+    updateProgress(5, "Đang gửi yêu cầu và chuẩn bị pipeline 2 bước...");
+
+    const formData = new FormData();
+    formData.append("topic", topic || "Phân tích bức ảnh và sáng tác kịch bản YouTube đỉnh cao");
+    formData.append("video_type", selectedVideoType);
+    formData.append("genre", genre);
+    formData.append("total_scenes", totalScenes);
+    if (currentFile) {
+      formData.append("image", currentFile);
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/api/generate-stream`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Lỗi máy chủ: ${response.status}`);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n\n");
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const jsonStr = line.slice(6).trim();
+            if (jsonStr) {
+              const event = JSON.parse(jsonStr);
+              if (event.type === "progress") {
+                updateProgress(event.percent, event.message);
+              } else if (event.type === "complete") {
+                updateProgress(100, "Hoàn tất kịch bản!");
+                renderScriptResult(event.data);
+                showToast("Tạo toàn bộ kịch bản thành công!");
+                setTimeout(() => {
+                  progressContainer.classList.add("hidden");
+                }, 1500);
+
+                // Auto switch to Scenes Tab
+                const scenesTabBtn = document.querySelector('[data-tab="tab-scenes"]');
+                if (scenesTabBtn) scenesTabBtn.click();
+              } else if (event.type === "error") {
+                showToast(`Lỗi: ${event.message}`, true);
+                alert(`Đã xảy ra lỗi: ${event.message}`);
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      showToast(`Lỗi kết nối: ${err.message}`, true);
+    } finally {
+      setGeneratingState(false);
+    }
+  }
+
+  // Action Button Listeners
+  if (btnGenerateOutline) btnGenerateOutline.addEventListener("click", handleGenerateOutline);
+  if (btnGenerateScenes) btnGenerateScenes.addEventListener("click", handleGenerateScenes);
+  if (btnInlineGenerateScenes) btnInlineGenerateScenes.addEventListener("click", handleGenerateScenes);
+  if (btnGenerateFull) btnGenerateFull.addEventListener("click", handleGenerateFull);
+
+  function setGeneratingState(isGenerating, type = "full") {
+    if (btnGenerateOutline) btnGenerateOutline.disabled = isGenerating;
+    if (btnGenerateScenes) btnGenerateScenes.disabled = isGenerating;
+    if (btnGenerateFull) btnGenerateFull.disabled = isGenerating;
+    if (btnInlineGenerateScenes) btnInlineGenerateScenes.disabled = isGenerating;
+
     if (isGenerating) {
-      btnGenerateText.textContent = "Đang đạo diễn kịch bản...";
-      btnGenerate.classList.add("opacity-70", "cursor-not-allowed");
       progressContainer.classList.remove("hidden");
+      if (type === "outline") {
+        if (btnOutlineText) btnOutlineText.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang tạo sườn...`;
+        if (btnGenerateOutline) btnGenerateOutline.classList.add("opacity-70", "cursor-not-allowed");
+      } else if (type === "scenes") {
+        if (btnScenesText) btnScenesText.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang viết 50-60 cảnh...`;
+        if (btnGenerateScenes) btnGenerateScenes.classList.add("opacity-70", "cursor-not-allowed");
+      } else {
+        if (btnGenerateFullText) btnGenerateFullText.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang xử lý cả 2 bước...`;
+        if (btnGenerateFull) btnGenerateFull.classList.add("opacity-70", "cursor-not-allowed");
+      }
     } else {
-      btnGenerateText.textContent = "Tạo Kịch Bản Chuẩn 50-60 Prompt";
-      btnGenerate.classList.remove("opacity-70", "cursor-not-allowed");
+      if (btnOutlineText) btnOutlineText.textContent = "Bước 1: Tạo Kịch Bản Sườn";
+      if (btnGenerateOutline) btnGenerateOutline.classList.remove("opacity-70", "cursor-not-allowed");
+
+      if (btnScenesText) btnScenesText.textContent = "Bước 2: Tạo Phân Cảnh Chi Tiết";
+      if (btnGenerateScenes) btnGenerateScenes.classList.remove("opacity-70", "cursor-not-allowed");
+
+      if (btnGenerateFullText) btnGenerateFullText.textContent = "Hoặc: Tạo Trọn Gói Cả 2 Bước Tự Động";
+      if (btnGenerateFull) btnGenerateFull.classList.remove("opacity-70", "cursor-not-allowed");
     }
   }
 
@@ -284,42 +568,74 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
   }
 
-  // RENDER SCRIPT RESULTS
+  // RENDER OUTLINE RESULT (Step 1 only)
+  function renderOutlineResult(data) {
+    currentScriptData = currentScriptData ? { ...currentScriptData, ...data } : data;
+    currentPart1Outline = data.part1_outline || "";
+
+    outlineEmpty.classList.add("hidden");
+    if (outlineHeaderBar) outlineHeaderBar.classList.remove("hidden");
+    outlineContent.classList.remove("hidden");
+    if (outlineEditorContainer) outlineEditorContainer.classList.add("hidden");
+    if (btnToggleEditText) btnToggleEditText.textContent = "Chỉnh Sửa Sườn";
+    isEditingOutline = false;
+
+    if (window.marked) {
+      outlineContent.innerHTML = marked.parse(currentPart1Outline);
+    } else {
+      outlineContent.textContent = currentPart1Outline;
+    }
+    if (outlineEditorText) outlineEditorText.value = currentPart1Outline;
+
+    // Switch to Tab 1
+    const outlineTabBtn = document.querySelector('[data-tab="tab-outline"]');
+    if (outlineTabBtn) outlineTabBtn.click();
+  }
+
+  // RENDER SCRIPT RESULTS (Full)
   function renderScriptResult(data) {
     currentScriptData = data;
     const { part1_outline, full_markdown, scenes } = data;
+    currentPart1Outline = part1_outline || "";
 
     // Render Tab 1: Outline
     outlineEmpty.classList.add("hidden");
+    if (outlineHeaderBar) outlineHeaderBar.classList.remove("hidden");
     outlineContent.classList.remove("hidden");
+    if (outlineEditorContainer) outlineEditorContainer.classList.add("hidden");
+    if (btnToggleEditText) btnToggleEditText.textContent = "Chỉnh Sửa Sườn";
+    isEditingOutline = false;
+
     if (window.marked) {
-      outlineContent.innerHTML = marked.parse(part1_outline);
+      outlineContent.innerHTML = marked.parse(currentPart1Outline);
     } else {
-      outlineContent.textContent = part1_outline;
+      outlineContent.textContent = currentPart1Outline;
     }
+    if (outlineEditorText) outlineEditorText.value = currentPart1Outline;
 
     // Render Tab 2: Scenes Cards
-    scenesBadge.textContent = scenes.length;
-    scenesCountDisplay.textContent = scenes.length;
-    renderSceneCards(scenes);
+    const scenesList = scenes || [];
+    scenesBadge.textContent = scenesList.length;
+    scenesCountDisplay.textContent = scenesList.length;
+    renderSceneCards(scenesList);
 
     // Render Tab 3: Full Markdown
-    fullScriptText.value = full_markdown;
+    fullScriptText.value = full_markdown || "";
 
     // Render Tab 4: Bulk Export Texts
-    const mjPrompts = scenes
+    const mjPrompts = scenesList
       .map((s) => s.image_prompt)
       .filter(Boolean)
       .join("\n\n");
     bulkMjText.value = mjPrompts;
 
-    const vidPrompts = scenes
+    const vidPrompts = scenesList
       .map((s) => `[Cảnh ${s.scene_number}] ${s.video_prompt}`)
       .filter(Boolean)
       .join("\n\n");
     bulkVideoText.value = vidPrompts;
 
-    const voScripts = scenes
+    const voScripts = scenesList
       .map((s) => `[Cảnh ${s.scene_number} - ${s.timing}] ${s.voiceover}`)
       .filter(Boolean)
       .join("\n\n");
@@ -427,7 +743,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
-      const response = await fetch("/api/export-csv", {
+      const response = await fetch(`${API_BASE}/api/export-csv`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scenes: currentScriptData.scenes }),
@@ -480,7 +796,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function checkApiConfig() {
     try {
-      const res = await fetch("/api/config");
+      const res = await fetch(`${API_BASE}/api/config`);
       const data = await res.json();
       modalProvider.value = data.provider;
       modalOpenaiStatus.textContent = `Hiện tại: ${data.openai_masked}`;
@@ -489,12 +805,12 @@ document.addEventListener("DOMContentLoaded", () => {
       if (data.provider === "gemini") {
         if (data.has_gemini) {
           apiStatusDot.className = "w-2 h-2 rounded-full bg-emerald-400";
-          apiStatusText.textContent = "Google Gemini (Miễn phí) Sẵn Sàng";
+          apiStatusText.textContent = "Google Gemini Sẵn Sàng";
           if (geminiBannerStatus) geminiBannerStatus.classList.remove("hidden");
           if (quickGeminiKey) quickGeminiKey.placeholder = `Đã lưu key: ${data.gemini_masked}`;
         } else {
           apiStatusDot.className = "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
-          apiStatusText.textContent = "Google Gemini: Cần nhập API Key";
+          apiStatusText.textContent = "Cần nhập Gemini API Key";
           if (geminiBannerStatus) geminiBannerStatus.classList.add("hidden");
         }
       } else if (data.provider === "openai" && data.has_openai) {
@@ -506,7 +822,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } catch (e) {
       apiStatusDot.className = "w-2 h-2 rounded-full bg-red-400";
-      apiStatusText.textContent = "Lỗi kết nối API";
+      apiStatusText.textContent = "Lỗi kết nối máy chủ";
     }
   }
 
@@ -516,7 +832,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     try {
-      const res = await fetch("/api/config", {
+      const res = await fetch(`${API_BASE}/api/config`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -548,6 +864,46 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  const btnTestQuickGemini = document.getElementById("btn-test-quick-gemini");
+  const btnTestSettingsKey = document.getElementById("btn-test-settings-key");
+
+  async function testApiKey(provider, key = "") {
+    showToast(`Đang kiểm tra kết nối tới ${provider.toUpperCase()}...`);
+    try {
+      const res = await fetch(`${API_BASE}/api/test-key`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider, key }),
+      });
+      const data = await res.json();
+      if (data.status === "success") {
+        showToast(data.message, false);
+        alert(`✅ ${data.message}`);
+        checkApiConfig();
+      } else {
+        showToast(`Lỗi: ${data.message}`, true);
+        alert(`❌ Lỗi kết nối: ${data.message}`);
+      }
+    } catch (e) {
+      showToast(`Không thể kết nối máy chủ: ${e.message}`, true);
+    }
+  }
+
+  if (btnTestQuickGemini) {
+    btnTestQuickGemini.addEventListener("click", () => {
+      const key = quickGeminiKey ? quickGeminiKey.value.trim() : "";
+      testApiKey("gemini", key);
+    });
+  }
+
+  if (btnTestSettingsKey) {
+    btnTestSettingsKey.addEventListener("click", () => {
+      const prov = modalProvider.value;
+      const key = prov === "gemini" ? modalGeminiKey.value.trim() : modalOpenaiKey.value.trim();
+      testApiKey(prov, key);
+    });
+  }
+
   btnOpenSettings.addEventListener("click", () => {
     settingsModal.classList.remove("hidden");
   });
@@ -562,7 +918,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (modalGeminiKey.value.trim()) payload.gemini_key = modalGeminiKey.value.trim();
 
     try {
-      const res = await fetch("/api/config", {
+      const res = await fetch(`${API_BASE}/api/config`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -582,7 +938,7 @@ document.addEventListener("DOMContentLoaded", () => {
     historyModal.classList.remove("hidden");
     historyList.innerHTML = `<div class="text-center py-6 text-slate-400">Đang tải lịch sử...</div>`;
     try {
-      const res = await fetch("/api/history");
+      const res = await fetch(`${API_BASE}/api/history`);
       const list = await res.json();
       if (!list || list.length === 0) {
         historyList.innerHTML = `<div class="text-center py-8 text-slate-400">Chưa có kịch bản nào được lưu trong thư mục outputs.</div>`;
@@ -601,7 +957,7 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
         row.addEventListener("click", async () => {
           try {
-            const detailRes = await fetch(`/api/history/${item.id}`);
+            const detailRes = await fetch(`${API_BASE}/api/history/${item.id}`);
             const scriptData = await detailRes.json();
             renderScriptResult(scriptData);
             historyModal.classList.add("hidden");
@@ -647,7 +1003,7 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         btnSubmitImport.disabled = true;
         btnSubmitImport.textContent = "Đang xử lý...";
-        const res = await fetch("/api/parse-and-save", {
+        const res = await fetch(`${API_BASE}/api/parse-and-save`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

@@ -67,6 +67,200 @@ async def update_config(data: dict):
     save_config(openai_key=openai_key, gemini_key=gemini_key, provider=provider)
     return {"status": "success", "message": "Đã lưu cấu hình API thành công!"}
 
+@app.post("/api/test-key")
+async def test_key(data: dict):
+    provider = data.get("provider", "gemini")
+    key = data.get("key")
+    if not key:
+        if provider == "gemini":
+            key = os.getenv("GEMINI_API_KEY", "")
+        else:
+            key = os.getenv("OPENAI_API_KEY", "")
+
+    if not key:
+        return {"status": "error", "message": "Chưa có API Key để kiểm tra!"}
+
+    try:
+        gen = ScriptGenerator(provider=provider, api_key=key)
+        reply = gen._call_ai("Xin chào, hãy trả lời đúng 2 từ: Sẵn sàng.")
+        return {"status": "success", "message": f"Kết nối AI thành công! Phản hồi: {reply.strip()}"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/generate-outline-stream")
+async def generate_outline_stream(
+    topic: str = Form(...),
+    video_type: str = Form("Video dài (16:9)"),
+    genre: str = Form("Bí ẩn / Ly kỳ"),
+    total_scenes: int = Form(55),
+    provider: Optional[str] = Form(None),
+    api_key: Optional[str] = Form(None),
+    image: Optional[UploadFile] = File(None)
+):
+    """Streaming endpoint for Step 1: generates outline only (~5-10s)."""
+    image_path = None
+    if image and image.filename:
+        filename = f"{uuid.uuid4().hex}_{image.filename}"
+        dest_path = UPLOAD_DIR / filename
+        with open(dest_path, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+        image_path = str(dest_path)
+
+    async def event_generator():
+        queue = asyncio.Queue()
+        loop = asyncio.get_event_loop()
+
+        def sync_progress(percent: int, message: str):
+            asyncio.run_coroutine_threadsafe(
+                queue.put({"type": "progress", "percent": percent, "message": message}),
+                loop
+            )
+
+        def worker():
+            try:
+                gen = ScriptGenerator(provider=provider, api_key=api_key)
+                part1_text = gen.generate_outline(
+                    topic=topic,
+                    image_path=image_path,
+                    video_type=video_type,
+                    genre=genre,
+                    total_scenes=total_scenes,
+                    progress_callback=sync_progress
+                )
+                
+                script_id = uuid.uuid4().hex[:8]
+                result = {
+                    "id": script_id,
+                    "topic": topic,
+                    "video_type": video_type,
+                    "genre": genre,
+                    "total_scenes": total_scenes,
+                    "part1_outline": part1_text,
+                    "full_markdown": part1_text,
+                    "scenes": []
+                }
+                
+                # Save draft
+                out_file = OUTPUTS_DIR / f"script_{script_id}.json"
+                with open(out_file, "w", encoding="utf-8") as f:
+                    json.dump(result, f, ensure_ascii=False, indent=2)
+
+                md_file = OUTPUTS_DIR / f"script_{script_id}.md"
+                with open(md_file, "w", encoding="utf-8") as f:
+                    f.write(part1_text)
+
+                asyncio.run_coroutine_threadsafe(
+                    queue.put({"type": "complete", "data": result}),
+                    loop
+                )
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                asyncio.run_coroutine_threadsafe(
+                    queue.put({"type": "error", "message": str(e)}),
+                    loop
+                )
+            finally:
+                asyncio.run_coroutine_threadsafe(queue.put(None), loop)
+
+        loop.run_in_executor(None, worker)
+
+        while True:
+            item = await queue.get()
+            if item is None:
+                break
+            payload = json.dumps(item, ensure_ascii=False)
+            yield f"data: {payload}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+@app.post("/api/generate-scenes-stream")
+async def generate_scenes_stream(
+    topic: str = Form(...),
+    part1_outline: str = Form(...),
+    script_id: Optional[str] = Form(None),
+    video_type: str = Form("Video dài (16:9)"),
+    genre: str = Form("Bí ẩn / Ly kỳ"),
+    total_scenes: int = Form(55),
+    provider: Optional[str] = Form(None),
+    api_key: Optional[str] = Form(None)
+):
+    """Streaming endpoint for Step 2: generates detailed scene breakdown from outline."""
+    async def event_generator():
+        queue = asyncio.Queue()
+        loop = asyncio.get_event_loop()
+
+        def sync_progress(percent: int, message: str):
+            asyncio.run_coroutine_threadsafe(
+                queue.put({"type": "progress", "percent": percent, "message": message}),
+                loop
+            )
+
+        def worker():
+            try:
+                gen = ScriptGenerator(provider=provider, api_key=api_key)
+                result = gen.generate_scenes_from_outline(
+                    topic=topic,
+                    part1_outline=part1_outline,
+                    video_type=video_type,
+                    genre=genre,
+                    total_scenes=total_scenes,
+                    progress_callback=sync_progress
+                )
+
+                sid = script_id or uuid.uuid4().hex[:8]
+                result["id"] = sid
+
+                # Save output to outputs folder
+                out_file = OUTPUTS_DIR / f"script_{sid}.json"
+                with open(out_file, "w", encoding="utf-8") as f:
+                    json.dump(result, f, ensure_ascii=False, indent=2)
+
+                md_file = OUTPUTS_DIR / f"script_{sid}.md"
+                with open(md_file, "w", encoding="utf-8") as f:
+                    f.write(result["full_markdown"])
+
+                asyncio.run_coroutine_threadsafe(
+                    queue.put({"type": "complete", "data": result}),
+                    loop
+                )
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                asyncio.run_coroutine_threadsafe(
+                    queue.put({"type": "error", "message": str(e)}),
+                    loop
+                )
+            finally:
+                asyncio.run_coroutine_threadsafe(queue.put(None), loop)
+
+        loop.run_in_executor(None, worker)
+
+        while True:
+            item = await queue.get()
+            if item is None:
+                break
+            payload = json.dumps(item, ensure_ascii=False)
+            yield f"data: {payload}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
 @app.post("/api/generate-stream")
 async def generate_stream(
     topic: str = Form(...),

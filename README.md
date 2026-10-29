@@ -1,9 +1,25 @@
-<<<<<<< HEAD
 # TOOL KỊCH BẢN VIDEO AI YOUTUBE (50-60 PROMPT)
 
 > **Tuân thủ tuyệt đối quy chuẩn tại `Rule.txt`**: Thiết kế chuyên biệt cho nhà sản xuất video YouTube AI & Shorts, tạo ra kịch bản hoàn chỉnh chuẩn Hollywood gồm đúng 2 phần:
 > 1. **Phần 1:** Kịch bản sườn & Tóm tắt nội dung chính (Cốt truyện, Khóa nhân vật, The 3-Second Hook, 5 Tiêu đề CTR cao, 3 Ý tưởng Thumbnail, SEO).
 > 2. **Phần 2:** Chi tiết kịch bản gồm **50 đến 60 cảnh / prompt** (Đầy đủ Prompt Midjourney/Flux tiếng Anh, Prompt Motion Kling/Runway, Lời bình Voice-Over giàu cảm xúc và Sound FX).
+
+---
+
+## ⚡ TÍNH NĂNG MỚI: QUY TRÌNH 2 NÚT BẤM (TIẾT KIỆM THỜI GIAN ĐỢI)
+
+Để tránh mất thời gian đợi AI sinh cùng lúc cả 50-60 cảnh, công cụ đã chia quy trình ra thành **2 nút bấm độc lập**:
+
+1. 📝 **Nút Bước 1: Tạo Kịch Bản Sườn (~5 - 10 giây)**
+   - Phân tích hình ảnh, khóa phong cách nhân vật & mỹ thuật (Consistency Prompt Anchor).
+   - Tạo The 3-Second Hook giật gân, 5 tiêu đề kích thích CTR cao, 3 ý tưởng thumbnail và sườn phân bổ cảnh.
+   - **Xem & Chỉnh sửa trực tiếp:** Người dùng có thể đọc ngay lập tức, chỉnh sửa câu chữ sườn kịch bản ngay tại giao diện trước khi quyết định tạo chi tiết.
+
+2. 🎬 **Nút Bước 2: Tạo Phân Cảnh Chi Tiết (50 - 60 Cảnh)**
+   - AI sẽ căn cứ chính xác vào kịch bản sườn đã duyệt ở Bước 1 để tạo chi tiết từng cảnh (Prompt ảnh, Prompt video chuyển động, Voice-over ngữ điệu và Sound FX).
+   - Tự động tách thẻ phân cảnh và cập nhật đầy đủ các định dạng xuất (Excel/CSV, Markdown, Danh sách prompt hàng loạt).
+
+*(Ngoài ra vẫn có nút **"Hoặc: Tạo Trọn Gói Cả 2 Bước Tự Động"** nếu bạn muốn chạy liên tục 1 lần).*
 
 ---
 
@@ -120,6 +136,3 @@ C:\Users\Public\Documents\Tool-Kichban\
 ├── uploads/              # Thư mục lưu ảnh người dùng tải lên
 └── outputs/              # Thư mục tự động lưu trữ các kịch bản (.md, .json)
 ```
-=======
-# AIScriptDirector
->>>>>>> ba428c2811aab816b0fe03fecf1e33012be0e5d6

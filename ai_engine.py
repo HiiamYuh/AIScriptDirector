@@ -124,10 +124,10 @@ class ScriptGenerator:
             contents.append(prompt)
             
             models_to_try = [
-                "gemini-3.8-flash",
-                "gemini-3.7-flash",
+                "gemini-3.5-flash",
                 "gemini-3.5-flash-lite",
-                "gemini-2.5-flash"
+                "gemini-3.8-flash",
+                "gemini-3.7-flash"
             ]
             last_err = None
             for model_name in models_to_try:
@@ -166,7 +166,7 @@ class ScriptGenerator:
                 raise ValueError("Chưa nhập OPENAI_API_KEY! Vui lòng vào nút Cài Đặt (⚙️) để nhập key.")
             return self._call_openai(prompt, image_path, system_prompt)
 
-    def generate_full_script_pipeline(
+    def generate_outline(
         self,
         topic: str,
         image_path: Optional[str] = None,
@@ -174,21 +174,17 @@ class ScriptGenerator:
         genre: str = "Bí ẩn / Ly kỳ",
         total_scenes: int = 55,
         progress_callback = None
-    ) -> Dict[str, Any]:
+    ) -> str:
         """
-        Executes a 4-phase generation pipeline guaranteeing all 50-60 scenes:
-        Phase 1: Part 1 - Kịch bản sườn & Tóm tắt nội dung chính.
-        Phase 2: Part 2 - Scenes 1 to 20
-        Phase 3: Part 2 - Scenes 21 to 40
-        Phase 4: Part 2 - Scenes 41 to total_scenes
+        Step 1: Generates Part 1 - Kịch bản sườn & Tóm tắt nội dung chính.
+        Fast execution (~5-10s) so users don't have to wait for all detailed scene prompts.
         """
         ar_tag = "--ar 16:9" if "16:9" in video_type else "--ar 9:16"
         pacing_rule = "4 đến 7 giây" if "16:9" in video_type else "3 đến 6 giây"
 
         if progress_callback:
-            progress_callback(10, "Đang phân tích hình ảnh và tạo PHẦN 1: Kịch bản sườn & Tóm tắt nội dung chính...")
+            progress_callback(20, "Đang phân tích hình ảnh và sáng tác PHẦN 1: Kịch bản sườn & Tóm tắt nội dung chính...")
 
-        # PHASE 1: Generate Outline & Sườn kịch bản
         prompt_phase1 = f"""
 Bạn hãy phân tích kỹ bức ảnh được cung cấp (nếu có) và dựa vào chủ đề: "{topic}".
 Thể loại / Mood: {genre}
@@ -223,14 +219,34 @@ Yêu cầu cụ thể trong Phần 1:
 Hãy viết chi tiết, đẳng cấp, chuyên nghiệp theo đúng tinh thần Rule.txt!
 """
         part1_text = self._call_ai(prompt_phase1, image_path=image_path)
+        if progress_callback:
+            progress_callback(100, "Hoàn tất sáng tác Kịch bản sườn (Phần 1)!")
+        return part1_text
+
+    def generate_scenes_from_outline(
+        self,
+        topic: str,
+        part1_outline: str,
+        video_type: str = "Video dài (16:9)",
+        genre: str = "Bí ẩn / Ly kỳ",
+        total_scenes: int = 55,
+        progress_callback = None
+    ) -> Dict[str, Any]:
+        """
+        Step 2: Generates Part 2 - Detailed scene breakdown (50-60 scenes)
+        based on the user-approved outline from Step 1.
+        """
+        ar_tag = "--ar 16:9" if "16:9" in video_type else "--ar 9:16"
+        pacing_rule = "4 đến 7 giây" if "16:9" in video_type else "3 đến 6 giây"
+        outline_context = part1_outline[:4000]
 
         # PHASE 2: Scenes 1 to 20
         if progress_callback:
-            progress_callback(35, f"Đang sáng tác PHẦN 2: Chi tiết Cảnh 01 đến Cảnh 20 (Hook & Khởi đầu)...")
+            progress_callback(25, "Đang sáng tác PHẦN 2: Chi tiết Cảnh 01 đến Cảnh 20 (Hook & Khởi đầu)...")
 
         prompt_phase2 = f"""
 Dựa trên PHẦN 1 KỊCH BẢN SƯỜN đã xây dựng:
-{part1_text[:2000]}
+{outline_context}
 
 HÃY VIẾT:
 # PHẦN 2: CHI TIẾT KỊCH BẢN ({total_scenes} PROMPT) - ĐỢT 1: TỪ CẢNH 01 ĐẾN CẢNH 20
@@ -256,12 +272,14 @@ Hãy viết đầy đủ từ CẢNH 01 đến CẢNH 20, không được bỏ s
 
         # PHASE 3: Scenes 21 to 40
         if progress_callback:
-            progress_callback(60, f"Đang sáng tác PHẦN 2: Chi tiết Cảnh 21 đến Cảnh 40 (Cao trào & Thắt nút)...")
+            progress_callback(55, "Đang sáng tác PHẦN 2: Chi tiết Cảnh 21 đến Cảnh 40 (Cao trào & Thắt nút)...")
 
         prompt_phase3 = f"""
 Tiếp tục kịch bản trên theo PHẦN 1.
 Chủ đề: {topic} | Aspect ratio: {ar_tag} | Nhịp độ: {pacing_rule}
 Đợt 1 vừa kết thúc ở Cảnh 20.
+Sườn kịch bản:
+{outline_context}
 
 HÃY TIẾP TỤC VIẾT ĐỢT 2: TỪ CẢNH 21 ĐẾN CẢNH 40
 Diễn biến: Mâu thuẫn leo thang, nhịp phim dồn dập, nguy hiểm bủa vây, những bí ẩn dần hé lộ.
@@ -283,12 +301,14 @@ Hãy viết đủ và chi tiết từ CẢNH 21 đến CẢNH 40!
 
         # PHASE 4: Scenes 41 to total_scenes
         if progress_callback:
-            progress_callback(85, f"Đang sáng tác PHẦN 2: Chi tiết Cảnh 41 đến Cảnh {total_scenes} (Mở nút & Kết thúc)...")
+            progress_callback(80, f"Đang sáng tác PHẦN 2: Chi tiết Cảnh 41 đến Cảnh {total_scenes} (Mở nút & Kết thúc)...")
 
         prompt_phase4 = f"""
 Tiếp tục kịch bản trên theo PHẦN 1.
 Chủ đề: {topic} | Aspect ratio: {ar_tag} | Nhịp độ: {pacing_rule}
 Đợt 2 vừa kết thúc ở Cảnh 40.
+Sườn kịch bản:
+{outline_context}
 
 HÃY TIẾP TỤC VIẾT ĐỢT 3: TỪ CẢNH 41 ĐẾN CẢNH {total_scenes}
 Diễn biến: Đỉnh điểm cao trào, sự thật chấn động được phơi bày, hậu quả, cái kết ám ảnh và lời bình triết lý sâu sắc hoặc Call To Action ấn tượng.
@@ -312,7 +332,7 @@ Hãy viết đầy đủ từ CẢNH 41 đến CẢNH {total_scenes}!
             progress_callback(95, "Đang tổng hợp kịch bản và chuẩn hóa danh sách prompt...")
 
         # Combine into complete script
-        full_markdown = f"{part1_text.strip()}\n\n---\n\n{batch1_text.strip()}\n\n{batch2_text.strip()}\n\n{batch3_text.strip()}"
+        full_markdown = f"{part1_outline.strip()}\n\n---\n\n{batch1_text.strip()}\n\n{batch2_text.strip()}\n\n{batch3_text.strip()}"
 
         # Parse scenes into structured objects
         parsed_scenes = self.parse_scenes_from_text(full_markdown)
@@ -325,10 +345,55 @@ Hãy viết đầy đủ từ CẢNH 41 đến CẢNH {total_scenes}!
             "video_type": video_type,
             "genre": genre,
             "total_scenes": len(parsed_scenes),
-            "part1_outline": part1_text,
+            "part1_outline": part1_outline,
             "full_markdown": full_markdown,
             "scenes": parsed_scenes
         }
+
+    def generate_full_script_pipeline(
+        self,
+        topic: str,
+        image_path: Optional[str] = None,
+        video_type: str = "Video dài (16:9)",
+        genre: str = "Bí ẩn / Ly kỳ",
+        total_scenes: int = 55,
+        progress_callback = None
+    ) -> Dict[str, Any]:
+        """
+        Executes a 4-phase generation pipeline guaranteeing all 50-60 scenes:
+        Phase 1: Part 1 - Kịch bản sườn & Tóm tắt nội dung chính.
+        Phase 2: Part 2 - Scenes 1 to 20
+        Phase 3: Part 2 - Scenes 21 to 40
+        Phase 4: Part 2 - Scenes 41 to total_scenes
+        """
+        if progress_callback:
+            progress_callback(10, "Bắt đầu quy trình tự động: Tạo kịch bản sườn & phân cảnh chi tiết...")
+
+        def outline_cb(p, msg):
+            if progress_callback:
+                progress_callback(int(p * 0.25), msg)
+
+        part1_text = self.generate_outline(
+            topic=topic,
+            image_path=image_path,
+            video_type=video_type,
+            genre=genre,
+            total_scenes=total_scenes,
+            progress_callback=outline_cb
+        )
+
+        def scenes_cb(p, msg):
+            if progress_callback:
+                progress_callback(25 + int(p * 0.75), msg)
+
+        return self.generate_scenes_from_outline(
+            topic=topic,
+            part1_outline=part1_text,
+            video_type=video_type,
+            genre=genre,
+            total_scenes=total_scenes,
+            progress_callback=scenes_cb
+        )
 
     def parse_scenes_from_text(self, text: str) -> List[Dict[str, Any]]:
         """Parses markdown text into structured scene objects for UI and bulk export."""
